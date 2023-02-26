@@ -1,6 +1,6 @@
 import os
 from app import app, db, login_manager
-from flask import render_template, request, redirect, url_for, flash, session, abort
+from flask import render_template, request, redirect, send_from_directory, url_for, flash, session, abort
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash
@@ -38,11 +38,11 @@ def upload():
             photo = form.image.data
             filename = secure_filename(photo.filename)
             
-            photo.save(os.path.join(
-                'uploads', filename
+            photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename
             ))
             
             flash('File Saved', 'success')
+            
             return redirect(url_for('home')) # Update this to redirect the user to a route that displays all uploaded image files
 
     return render_template('upload.html', form=form)
@@ -88,6 +88,24 @@ def login():
         flash_errors(form)
         
     return render_template("login.html", form=form)
+
+## Uploaded Images functions
+def get_uploaded_images():
+    rootdir = os.getcwd()
+    images = []
+    for subdir, dirs, files in os.walk(rootdir + app.config["UPLOAD_FOLDER"]):
+        for file in files:
+            images.append(file)
+    return images
+            
+@app.route('/uploads/<filename>')
+def get_image(filename):
+    return send_from_directory(os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER']), filename)
+      
+      
+@app.route("/files")
+def files():
+    return render_template("files.html", images=get_uploaded_images())
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
